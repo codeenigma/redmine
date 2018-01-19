@@ -1,0 +1,118 @@
+diff --git a/app/views/mailer/_issue.html.erb b/app/views/mailer/_issue.html.erb
+index 9461d8490..5705acb38 100644
+--- a/app/views/mailer/_issue.html.erb
++++ b/app/views/mailer/_issue.html.erb
+@@ -1,14 +1,14 @@
+ <h1><%= link_to("#{issue.tracker.name} ##{issue.id}: #{issue.subject}", issue_url) %></h1>
+ 
+-<%= render_email_issue_attributes(issue, users.first, true) %>
+-
+-<%= textilizable(issue, :description, :only_path => false) %>
+-
+-<% if issue.attachments.any? %>
+-  <fieldset class="attachments"><legend><%= l(:label_attachment_plural) %></legend>
+-  <% issue.attachments.each do |attachment| %>
+-    <%= link_to_attachment attachment, :download => true, :only_path => false %>
+-    (<%= number_to_human_size(attachment.filesize) %>)<br />
++<% items = [] %>
++<% %w(author status priority assigned_to category fixed_version).each do |attribute| %>
++  <% unless issue.disabled_core_fields.include?(attribute+"_id") %>
++    <% items << "#{l("field_#{attribute}")}: #{issue.send attribute}" %>
+   <% end %>
+-  </fieldset>
+ <% end %>
++<% items %>
++<%= content_tag('ul', items.map{|s| content_tag('li', s)}.join("\n").html_safe) %>
++
++<hr />
++
++For security reasons the description and other sensitive fields are only available by logging into Redmine.
+diff --git a/app/views/mailer/_issue.text.erb b/app/views/mailer/_issue.text.erb
+index 0034c441f..99246284c 100644
+--- a/app/views/mailer/_issue.text.erb
++++ b/app/views/mailer/_issue.text.erb
+@@ -1,13 +1,14 @@
+ <%= "#{issue.tracker.name} ##{issue.id}: #{issue.subject}" %>
+ <%= issue_url %>
+ 
+-<%= render_email_issue_attributes(issue, users.first) %>
++<% items = [] %>
++<% %w(author status priority assigned_to category fixed_version).each do |attribute| %>
++  <% unless issue.disabled_core_fields.include?(attribute+"_id") %>
++    <% items << "#{l("field_#{attribute}")}: #{issue.send attribute}" %>
++  <% end %>
++<% end %>
++<% items %>
++<%= items.map{|s| "* #{s}"}.join("\n") %>
+ ----------------------------------------
+-<%= issue.description %>
++For security reasons the description and other sensitive fields are only available by logging into Redmine.
+ 
+-<% if issue.attachments.any? -%>
+----<%= l(:label_attachment_plural).ljust(37, '-') %>
+-<% issue.attachments.each do |attachment| -%>
+-<%= attachment.filename %> (<%= number_to_human_size(attachment.filesize) %>)
+-<% end -%>
+-<% end -%>
+diff --git a/app/views/mailer/issue_edit.html.erb b/app/views/mailer/issue_edit.html.erb
+index b68843fba..55e7a4987 100644
+--- a/app/views/mailer/issue_edit.html.erb
++++ b/app/views/mailer/issue_edit.html.erb
+@@ -3,12 +3,7 @@
+ <% end %>
+ <%= l(:text_issue_updated, :id => link_to("##{@issue.id}", @issue_url), :author => h(@journal.user)).html_safe %>
+ 
+-<ul>
+-<% details_to_strings(@journal_details, false, :only_path => false).each do |string| %>
+-  <li><%= string %></li>
+-<% end %>
+-</ul>
++The following issue has been updated. Please login to Redmine for further information.
+ 
+-<%= textilizable(@journal, :notes, :only_path => false) %>
+ <hr />
+ <%= render :partial => 'issue', :formats => [:html], :locals => { :issue => @issue, :users => @users, :issue_url => @issue_url } %>
+diff --git a/app/views/mailer/issue_edit.text.erb b/app/views/mailer/issue_edit.text.erb
+index 173d2c4fe..a52be53c9 100644
+--- a/app/views/mailer/issue_edit.text.erb
++++ b/app/views/mailer/issue_edit.text.erb
+@@ -1,12 +1,5 @@
+ <%= "(#{l(:field_private_notes)}) " if @journal.private_notes? -%><%= l(:text_issue_updated, :id => "##{@issue.id}", :author => @journal.user) %>
+ 
+-<% details_to_strings(@journal_details, true).each do |string| -%>
+-<%= string %>
+-<% end -%>
+-
+-<% if @journal.notes? -%>
+-<%= @journal.notes %>
+-
+-<% end -%>
++The following issue has been updated. Please login to Redmine for further information.
+ ----------------------------------------
+ <%= render :partial => 'issue', :formats => [:text], :locals => { :issue => @issue, :users => @users, :issue_url => @issue_url } %>
+diff --git a/config/locales/en-GB.yml b/config/locales/en-GB.yml
+index 7e7271fec..3725b2b39 100644
+--- a/config/locales/en-GB.yml
++++ b/config/locales/en-GB.yml
+@@ -807,7 +807,7 @@ en-GB:
+   button_create: Create
+   button_create_and_continue: Create and continue
+   button_test: Test
+-  button_edit: Edit
++  button_edit: Update
+   button_edit_associated_wikipage: "Edit associated Wiki page: %{page_title}"
+   button_add: Add
+   button_change: Change
+diff --git a/config/locales/en.yml b/config/locales/en.yml
+index 399c2e85a..4d557ac12 100644
+--- a/config/locales/en.yml
++++ b/config/locales/en.yml
+@@ -1011,7 +1011,7 @@ en:
+   button_create: Create
+   button_create_and_continue: Create and continue
+   button_test: Test
+-  button_edit: Edit
++  button_edit: Update
+   button_edit_associated_wikipage: "Edit associated Wiki page: %{page_title}"
+   button_add: Add
+   button_change: Change
