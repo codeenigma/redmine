@@ -1,13 +1,14 @@
 <%= "#{issue.tracker.name} ##{issue.id}: #{issue.subject}" %>
 <%= issue_url %>
 
-<%= render_email_issue_attributes(issue, users.first) %>
+<% items = [] %>
+<% %w(author status priority assigned_to category fixed_version).each do |attribute| %>
+  <% unless issue.disabled_core_fields.include?(attribute+"_id") %>
+    <% items << "#{l("field_#{attribute}")}: #{issue.send attribute}" %>
+  <% end %>
+<% end %>
+<% items %>
+<%= items.map{|s| "* #{s}"}.join("\n") %>
 ----------------------------------------
-<%= issue.description %>
+For security reasons the description and other sensitive fields are only available by logging into Redmine.
 
-<% if issue.attachments.any? -%>
----<%= l(:label_attachment_plural).ljust(37, '-') %>
-<% issue.attachments.each do |attachment| -%>
-<%= attachment.filename %> (<%= number_to_human_size(attachment.filesize) %>)
-<% end -%>
-<% end -%>
